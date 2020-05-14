@@ -1,0 +1,80 @@
+
+service: books
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    BOOKS_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+       - dynamodb:Query
+       - dynamodb:Scan
+       - dynamodb:GetItem
+       - dynamodb:PutItem
+       - dynamodb:UpdateItem
+       - dynamodb:DeleteItem
+      Resource: "*"
+
+functions:
+  addBook:
+    handler: api/addBook.handler
+    memorySize: 128
+    description: Add a new book
+    events:
+      - http: 
+          path: book/add
+          method: post
+  updateBook:
+    handler: api/updateBook.handler
+    memorySize: 128
+    description: Update a book
+    events:
+      - http: 
+          path: book/{bookUuid}/update
+          method: post
+  deleteBook:
+    handler: api/deleteBook.handler
+    memorySize: 128
+    description: Delete a book
+    events:
+      - http: 
+          path: book/{bookUuid}/delete
+          method: delete
+  getBooks:
+    handler: api/getBooks.handler
+    memorySize: 128
+    description: Get all book
+    events:
+      - http: 
+          path: books
+          method: get
+  getBook:
+    handler: api/getBook.handler
+    memorySize: 128
+    description: Get a book
+    events:
+      - http: 
+          path: book/{bookUuid}
+          method: get
+
+resources:
+  Resources:
+    BooksDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: "uuid"
+            AttributeType: "S"
+        KeySchema:
+          -
+            AttributeName: "uuid"
+            KeyType: "HASH"
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.BOOKS_TABLE}
